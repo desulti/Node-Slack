@@ -1,0 +1,12 @@
+_metadata:
+  major_version: 1
+  minor_version: 1
+display_information:
+  name: legacy-sign-in-with-slack
+oauth_config:
+  redirect_urls:
+    - https://hooks.slack.com/services/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
+  scopes:
+    user:
+      - identity.basic
+      - identity.email
