@@ -1,7 +1,6 @@
 const { App } = require('@slack/bolt');
-const dotenv = require('dotenv');
-
-// dotenv.config({ path: 'slack.env' });
+const express = require('express');
+const bodyParser = require('body-parser');
 
 const SLACK_BOT_TOKEN = "xoxb-6537107037488-6514224563171-lIwJdxhkK3fosH0Pbrt2VZXG";
 const SLACK_SIGNING_SECRET = "52272410b380a5b24aebde64ab9948cb";
@@ -12,71 +11,57 @@ const app = new App({
   signingSecret: SLACK_SIGNING_SECRET,
   socketMode: true,
   appToken: SLACK_APP_TOKEN,
-  // Socket Mode doesn't listen on a port, but in case you want your app to respond to OAuth,
-  // you still need to listen on some port!
   port: process.env.PORT || 3000
 });
 
-// Listens to incoming messages that contain "hello"
-// app.message('hello', async ({ message, say }) => {
-//   console.log(message);
-//   // say() sends a message to the channel where the event was triggered
-//   try {
-//     await say(`Hey there <@${message.user}>!`);
-//   } catch (error) {
-//     console.error('Error responding to message:', error);
-//   }
-// });
+const expressApp = express();
 
-// app.message(async ({ message, say }) => {
-//   try {
-//     // Lấy lịch sử tin nhắn từ kênh
-//     const history = await app.client.conversations.history({
-//       token: SLACK_BOT_TOKEN,
-//       channel: SLACK_CHANNEL,
-//     });
-    
-//     // Xử lý và hiển thị tin nhắn theo cách bạn muốn
-//     const messages = history.messages;
-//     messages.forEach((msg) => {
-//       say(`${msg.user}: ${msg.text}`);
-//       console.log(history.messages);
-//     });
-//   } catch (error) {
-//     console.error('Error:', error);
-//   }
-// });
+// Sử dụng body-parser để lấy dữ liệu từ biểu mẫu HTML
+expressApp.use(bodyParser.urlencoded({ extended: true }));
 
-app.message(async ({ message, say }) => {
-  console.log(message);
-  
-  // Send a message to a channel
+// Đường dẫn cho trang web
+expressApp.get('/', (req, res) => {
+  res.send(`
+    <html>
+      <body>
+        <form action="/send-message" method="post">
+          <label for="message">Nhập tin nhắn:</label>
+          <input type="text" id="message" name="message">
+          <button type="submit">Gửi</button>
+        </form>
+      </body>
+    </html>
+  `);
+});
+
+// Xử lý dữ liệu từ biểu mẫu và gửi tin nhắn đến Slack
+expressApp.post('/send-message', async (req, res) => {
+  const { message } = req.body;
+
   try {
-      const result = await app.client.chat.postMessage({
-
-          token: SLACK_BOT_TOKEN,
-          channel: SLACK_CHANNEL, // Replace with your channel ID
-          text: 'Toi la An!',
-      });
-      console.log('Message sent successfully:', result);
+    const result = await app.client.chat.postMessage({
+      token: SLACK_BOT_TOKEN,
+      channel: SLACK_CHANNEL,
+      text: message,
+    });
+    console.log('Message sent successfully:', result);
+    res.send('Message sent successfully!');
   } catch (error) {
-      console.error('Error sending message:', error);
+    console.error('Error sending message:', error);
+    res.status(500).send('Error sending message');
   }
 });
 
+// Start máy chủ Express và Bolt app
+expressApp.listen(3010, () => {
+  console.log('⚡️ Express app is running on http://localhost:3010');
+});
 
-// app.message(async ({ message, say }) => {
-//   await say(`Xin chào, bạn vừa nói: ${message.text}`);
-//   console.log('Nội dung tin nhắn:', message.text);
-// });
-
-// Handle errors
-app.error((error) => {
-  console.error('Error:', error);
+app.message(async ({ message, say }) => {
+  console.log(message);
 });
 
 (async () => {
-  // Start your app
   try {
     await app.start();
     console.log('⚡️ Bolt app is running!');
